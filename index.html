@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>История ВТ — Кибер-Аркада</title>
+<style>
+:root{
+  --bg1:#0f0c29; --bg2:#1a1a3e; --bg3:#24243e;
+  --cyan:#00f5ff; --pink:#ff00ff; --green:#00ff88;
+  --yellow:#ffe600; --red:#ff3860;
+  --text:#e8f0ff; --dim:#8a9bc4;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{
+  height:100%;
+  font-family:'Segoe UI','Trebuchet MS',Tahoma,sans-serif;
+  background:radial-gradient(ellipse at top,#1a1a3e 0%,#0f0c29 70%);
+  color:var(--text);overflow:hidden;
+}
+body{display:flex;flex-direction:column;height:100vh;}
+.screen{display:none;flex-direction:column;height:100vh;width:100%;}
+.screen.active{display:flex;}
+
+/* HUD */
+.hud{
+  display:flex;align-items:center;gap:14px;
+  padding:9px 20px;
+  background:linear-gradient(180deg,rgba(36,36,62,.95),rgba(26,26,62,.85));
+  border-bottom:2px solid rgba(0,245,255,.3);
+  box-shadow:0 4px 24px rgba(0,245,255,.15);
+  flex-shrink:0;
+}
+.hud-block{
+  display:flex;align-items:center;gap:8px;
+  padding:5px 13px;border-radius:11px;
+  background:rgba(0,0,0,.35);
+  border:1px solid rgba(0,245,255,.25);
+  font-size:15px;font-weight:700;white-space:nowrap;
+}
+.hud-block .label{
+  color:var(--dim);font-size:12px;font-weight:600;
+  text-transform:uppercase;letter-spacing:.5px;
+}
+.hud-block .value{
+  font-size:19px;font-weight:800;color:var(--cyan);
+  text-shadow:0 0 8px rgba(0,245,255,.6);
+}
+#hearts{letter-spacing:2px;font-size:17px;}
+#hearts .lost{opacity:.2;filter:grayscale(1);}
+.hud-progress{flex:1;min-width:100px;display:flex;flex-direction:column;gap:4px;}
+.progress-info{display:flex;justify-content:space-between;font-size:11px;color:var(--dim);font-weight:700;text-transform:uppercase;letter-spacing:.5px;}
+.progress-bar{height:9px;background:rgba(0,0,0,.5);border-radius:5px;overflow:hidden;border:1px solid rgba(0,245,255,.2);}
+#progressFill{height:100%;width:0%;background:linear-gradient(90deg,var(--cyan),var(--pink));border-radius:5px;transition:width .4s;box-shadow:0 0 12px rgba(0,245,255,.7);}
+#timerBox.warning .value{color:var(--red);animation:pulse .8s infinite;}
+@keyframes pulse{50%{opacity:.5;}}
+#comboBox.active{border-color:var(--yellow);box-shadow:0 0 20px rgba(255,230,0,.5);}
+#comboBox.active .value{color:var(--yellow);text-shadow:0 0 12px rgba(255,230,0,.9);}
+
+/* Question area */
+.q-area{flex:1;overflow-y:auto;padding:16px 22px;display:flex;flex-direction:column;align-items:center;}
+.q-card{
+  width:100%;max-width:1000px;
+  background:linear-gradient(160deg,rgba(36,36,62,.9),rgba(26,26,62,.9));
+  border:1.5px solid rgba(0,245,255,.3);
+  border-radius:18px;padding:18px 24px;
+  box-shadow:0 8px 40px rgba(0,245,255,.1),inset 0 0 40px rgba(0,245,255,.03);
+}
+.block-badge{
+  display:inline-block;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1px;
+  padding:4px 12px;border-radius:20px;margin-bottom:10px;
+}
+.q-title-row{display:flex;gap:14px;align-items:flex-start;margin-bottom:16px;}
+.q-icon{
+  font-size:40px;flex-shrink:0;width:58px;height:58px;
+  display:flex;align-items:center;justify-content:center;
+  border-radius:14px;background:rgba(0,245,255,.08);
+  border:1.5px solid rgba(0,245,255,.3);
+}
+.q-text{font-size:21px;font-weight:700;line-height:1.35;padding-top:8px;color:#fff;}
+
+/* Options */
+.options{display:flex;flex-direction:column;gap:9px;}
+.opt{
+  display:flex;align-items:center;gap:12px;
+  padding:11px 17px;
+  border:2px solid rgba(0,245,255,.25);
+  border-radius:12px;background:rgba(0,245,255,.04);
+  color:var(--text);cursor:pointer;
+  font-family:inherit;font-size:17px;font-weight:600;
+  text-align:left;transition:all .15s;
+}
+.opt:hover:not(:disabled){border-color:var(--cyan);background:rgba(0,245,255,.1);transform:translateX(4px);box-shadow:0 0 18px rgba(0,245,255,.3);}
+.opt.selected{border-color:var(--yellow);background:rgba(255,230,0,.1);box-shadow:0 0 20px rgba(255,230,0,.3);}
+.opt.correct{border-color:var(--green);background:rgba(0,255,136,.12);box-shadow:0 0 24px rgba(0,255,136,.4);}
+.opt.wrong{border-color:var(--red);background:rgba(255,56,96,.12);box-shadow:0 0 24px rgba(255,56,96,.4);}
+.opt-mark{margin-left:auto;font-size:22px;font-weight:800;}
+.opt-mark.ok{color:var(--green);}
+.opt-mark.bad{color:var(--red);}
+.opt-bullet{
+  width:24px;height:24px;border-radius:50%;
+  border:2px solid rgba(0,245,255,.5);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:800;color:transparent;
+}
+.opt.selected .opt-bullet{border-color:var(--yellow);background:var(--yellow);color:#000;}
+.opt.correct .opt-bullet{border-color:var(--green);background:var(--green);color:#000;}
+.opt.wrong .opt-bullet{border-color:var(--red);background:var(--red);color:#fff;}
+
+/* True/False */
+.tf-buttons{display:flex;gap:16px;}
+.tf-btn{
+  flex:1;padding:22px 16px;
+  border:2px solid rgba(0,245,255,.3);
+  border-radius:14px;background:rgba(0,245,255,.05);
+  color:var(--text);cursor:pointer;font-family:inherit;
+  font-size:22px;font-weight:800;
+  display:flex;flex-direction:column;align-items:center;gap:8px;
+  transition:all .15s;
+}
+.tf-btn .tf-icon{font-size:38px;}
+.tf-btn:hover:not(:disabled){border-color:var(--cyan);background:rgba(0,245,255,.12);box-shadow:0 0 24px rgba(0,245,255,.35);}
+.tf-btn.selected{border-color:var(--yellow);background:rgba(255,230,0,.12);box-shadow:0 0 24px rgba(255,230,0,.4);}
+.tf-btn.correct{border-color:var(--green);background:rgba(0,255,136,.15);box-shadow:0 0 24px rgba(0,255,136,.5);}
+.tf-btn.wrong{border-color:var(--red);background:rgba(255,56,96,.15);box-shadow:0 0 24px rgba(255,56,96,.5);}
+
+/* Matching */
+.match-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.match-col{display:flex;flex-direction:column;gap:9px;}
+.match-item{
+  padding:11px 15px;
+  border:2px solid rgba(0,245,255,.3);
+  border-radius:12px;background:rgba(0,245,255,.05);
+  color:var(--text);cursor:pointer;font-family:inherit;
+  font-size:15.5px;font-weight:600;text-align:left;
+  transition:all .15s;display:flex;align-items:center;gap:8px;
+  min-height:54px;
+}
+.match-item:hover:not(:disabled){border-color:var(--cyan);background:rgba(0,245,255,.12);}
+.match-item.selected{border-color:var(--yellow);background:rgba(255,230,0,.12);box-shadow:0 0 18px rgba(255,230,0,.4);}
+.match-item.matched{opacity:.9;}
+.match-item.correct{border-color:var(--green)!important;background:rgba(0,255,136,.15)!important;}
+.match-item.wrong{border-color:var(--red)!important;background:rgba(255,56,96,.15)!important;}
+.match-item .mark{margin-left:auto;font-size:18px;}
+.match-item .mark.ok{color:var(--green);}
+.match-item .mark.bad{color:var(--red);}
+
+/* Category */
+.cat-pool{
+  display:flex;flex-wrap:wrap;gap:8px;padding:11px;
+  background:rgba(0,0,0,.3);
+  border:2px dashed rgba(0,245,255,.3);
+  border-radius:12px;min-height:64px;margin-bottom:14px;
+}
+.cat-pool-empty{color:var(--dim);font-size:14px;width:100%;text-align:center;padding:8px;font-weight:600;}
+.cat-zones{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+.cat-zone{
+  padding:11px;background:rgba(0,245,255,.03);
+  border:2px dashed rgba(0,245,255,.3);
+  border-radius:12px;min-height:135px;transition:all .15s;
+}
+.cat-zone-title{
+  font-size:13px;font-weight:800;color:var(--cyan);
+  text-transform:uppercase;letter-spacing:.5px;
+  margin-bottom:9px;text-align:center;
+}
+.cat-zone-items{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  padding:8px 13px;
+  border:2px solid rgba(0,245,255,.3);
+  border-radius:10px;background:rgba(0,245,255,.08);
+  color:var(--text);cursor:pointer;font-family:inherit;
+  font-size:14.5px;font-weight:600;transition:all .15s;
+}
+.chip:hover{border-color:var(--cyan);background:rgba(0,245,255,.18);}
+.chip.selected{border-color:var(--yellow);background:rgba(255,230,0,.15);box-shadow:0 0 14px rgba(255,230,0,.4);}
+.chip.correct{border-color:var(--green)!important;background:rgba(0,255,136,.15)!important;}
+.chip.wrong{border-color:var(--red)!important;background:rgba(255,56,96,.15)!important;}
+
+/* Order */
+.order-list{display:flex;flex-direction:column;gap:7px;}
+.order-item{
+  display:flex;align-items:center;gap:12px;
+  padding:9px 15px;
+  border:2px solid rgba(0,245,255,.3);
+  border-radius:12px;background:rgba(0,245,255,.05);
+  font-size:16px;font-weight:600;transition:all .15s;
+}
+.order-item.correct{border-color:var(--green);background:rgba(0,255,136,.15);}
+.order-item.wrong{border-color:var(--red);background:rgba(255,56,96,.15);}
+.order-num{
+  width:32px;height:32px;border-radius:50%;
+  background:linear-gradient(135deg,var(--cyan),var(--pink));
+  color:#000;display:flex;align-items:center;justify-content:center;
+  font-weight:800;flex-shrink:0;font-size:15px;
+}
+.order-text{flex:1;}
+.order-btns{display:flex;flex-direction:column;gap:2px;}
+.order-btn{
+  width:34px;height:22px;
+  border:1.5px solid rgba(0,245,255,.4);
+  border-radius:6px;background:rgba(0,245,255,.08);
+  color:var(--cyan);cursor:pointer;font-size:11px;
+  font-family:inherit;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  padding:0;transition:all .15s;
+}
+.order-btn:hover:not(:disabled){background:rgba(0,245,255,.25);}
+.order-btn:disabled{opacity:.25;cursor:not-allowed;}
+
+/* Footer */
+.footer{
+  display:flex;justify-content:center;gap:16px;
+  padding:11px 22px;
+  background:linear-gradient(0deg,rgba(36,36,62,.95),rgba(26,26,62,.85));
+  border-top:2px solid rgba(0,245,255,.3);
+  flex-shrink:0;
+}
+.btn{
+  padding:13px 40px;font-size:17px;font-weight:800;
+  border:none;border-radius:12px;cursor:pointer;
+  font-family:inherit;text-transform:uppercase;letter-spacing:1px;
+  transition:all .15s;
+}
+.btn-primary{background:linear-gradient(135deg,#00f5ff,#0080ff);color:#000;box-shadow:0 0 24px rgba(0,245,255,.5);}
+.btn-primary:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 40px rgba(0,245,255,.8);}
+.btn-primary:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+.btn-success{background:linear-gradient(135deg,#00ff88,#00b860);color:#000;box-shadow:0 0 24px rgba(0,255,136,.5);}
+.btn-success:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 0 40px rgba(0,255,136,.8);}
+.btn-success:disabled{opacity:.35;cursor:not-allowed;box-shadow:none;}
+
+/* Overlay screens */
+.overlay-screen{
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  height:100vh;padding:30px;text-align:center;
+}
+.overlay-screen.active{display:flex;}
+.intro-title{
+  font-size:42px;font-weight:900;
+  background:linear-gradient(90deg,var(--cyan),var(--pink),var(--green));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+  margin-bottom:6px;letter-spacing:2px;
+}
+.intro-sub{font-size:19px;color:var(--dim);margin-bottom:24px;font-weight:600;}
+.intro-emoji{font-size:80px;margin-bottom:12px;filter:drop-shadow(0 0 30px rgba(0,245,255,.6));}
+.intro-stats{display:flex;gap:20px;margin-bottom:24px;flex-wrap:wrap;justify-content:center;}
+.intro-stat{
+  padding:11px 20px;
+  background:rgba(0,245,255,.08);
+  border:1.5px solid rgba(0,245,255,.35);
+  border-radius:12px;font-size:15px;font-weight:700;color:var(--cyan);
+}
+.intro-stat .big{display:block;font-size:22px;color:#fff;}
+.result-title{font-size:50px;font-weight:900;margin-bottom:10px;letter-spacing:3px;}
+.result-title.win{
+  background:linear-gradient(90deg,var(--green),var(--cyan));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.result-title.lose{
+  background:linear-gradient(90deg,var(--red),var(--pink));
+  -webkit-background-clip:text;background-clip:text;
+  -webkit-text-fill-color:transparent;
+}
+.result-score{
+  font-size:32px;font-weight:800;color:var(--yellow);
+  text-shadow:0 0 24px rgba(255,230,0,.6);margin:10px 0;
+}
+.result-stats{display:flex;gap:20px;margin:20px 0;flex-wrap:wrap;justify-content:center;}
+.achievements-list{display:flex;gap:12px;margin:18px 0;flex-wrap:wrap;justify-content:center;max-width:700px;}
+.ach-card{
+  padding:9px 15px;background:rgba(0,0,0,.4);
+  border:1.5px solid rgba(0,245,255,.3);
+  border-radius:12px;font-size:13.5px;font-weight:700;
+  color:var(--dim);display:flex;align-items:center;gap:8px;
+}
+.ach-card.unlocked{
+  border-color:var(--yellow);color:var(--yellow);
+  box-shadow:0 0 18px rgba(255,230,0,.3);
+  background:rgba(255,230,0,.08);
+}
+
+/* Toast */
+.toast{
+  position:fixed;top:88px;right:22px;padding:13px 20px;
+  background:linear-gradient(135deg,rgba(255,230,0,.95),rgba(255,180,0,.95));
+  color:#000;border-radius:12px;font-weight:800;font-size:15px;
+  box-shadow:0 0 40px rgba(255,230,0,.8);
+  transform:translateX(400px);
+  transition:transform .4s cubic-bezier(.34,1.56,.64,1);
+  z-index:1000;max-width:320px;
+}
+.toast.show{transform:translateX(0);}
+.toast-feedback{
+  position:fixed;top:50%;left:50%;
+  transform:translate(-50%,-50%) scale(.7);
+  padding:20px 38px;border-radius:18px;
+  font-weight:900;font-size:26px;opacity:0;
+  pointer-events:none;z-index:999;
+  transition:opacity .25s,transform .25s;
+  text-align:center;white-space:nowrap;
+}
+.toast-feedback.show{opacity:1;transform:translate(-50%,-50%) scale(1);}
+.toast-feedback.good{
+  background:linear-gradient(135deg,rgba(0,255,136,.95),rgba(0,200,100,.95));
+  color:#000;box-shadow:0 0 60px rgba(0,255,136,.9);
+}
+.toast-feedback.bad{
+  background:linear-gradient(135deg,rgba(255,56,96,.95),rgba(200,0,60,.95));
+  color:#fff;box-shadow:0 0 60px rgba(255,56,96,.9);
+}
+
+@media (max-height:720px){
+  .q-text{font-size:19px;}
+  .opt{padding:9px 15px;font-size:16px;}
+  .tf-btn{padding:16px 12px;font-size:18px;}
+  .tf-btn .tf-icon{font-size:30px;}
+  .match-item{padding:9px 13px;font-size:14.5px;min-height:48px;}
+  .chip{padding:7px 12px;font-size:13.5px;}
+  .order-item{padding:8px 13px;font-size:15px;}
+  .intro-title{font-size:34px;}
+  .btn{padding:11px 32px;font-size:15px;}
+  .hud-block{padding:4px 11px;font-size:14px;}
+  .hud-block .value{font-size:17px;}
+  #hearts{font-size:15px;}
+  .q-icon{font-size:34px;width:50px;height:50px;}
+}
+</style>
+</head>
+<body>
+
+<div id="introScreen" class="screen active">
+  <div class="overlay-screen active">
+    <div class="intro-emoji">🖥️⚡🤖</div>
+    <div class="intro-title">ИСТОРИЯ ВТ: КИБЕР-АРКАДА</div>
+    <div class="intro-sub">Информатика и ИИ · 5 класс · Урок 5</div>
+    <div class="intro-stats">
+      <div class="intro-stat"><span class="big">30</span>заданий</div>
+      <div class="intro-stat"><span class="big">3</span>блока</div>
+      <div class="intro-stat"><span class="big">7 ❤️</span>жизней</div>
+      <div class="intro-stat"><span class="big">25:00</span>минут</div>
+    </div>
+    <button id="startBtn" class="btn btn-primary" style="margin-top:8px;">▶ НАЧАТЬ ИГРУ</button>
+  </div>
+</div>
+
+<div id="gameScreen" class="screen">
+  <div class="hud">
+    <div class="hud-block">
+      <span class="label">Очки</span>
+      <span class="value" id="scoreVal">0</span>
+    </div>
+    <div class="hud-block" id="comboBox">
+      <span class="label">Комбо</span>
+      <span class="value" id="comboVal">x1</span>
+    </div>
+    <div class="hud-block">
+      <span class="label">Жизни</span>
+      <span id="hearts"></span>
+    </div>
+    <div class="hud-progress">
+      <div class="progress-info">
+        <span id="blockLabel">Блок 1/3</span>
+        <span id="qLabel">1/30</span>
+      </div>
+      <div class="progress-bar"><div id="progressFill"></div></div>
+    </div>
+    <div class="hud-block" id="timerBox">
+      <span class="label">⏱</span>
+      <span class="value" id="timerVal">25:00</span>
+    </div>
+  </div>
+  <div class="q-area">
+    <div class="q-card" id="qCard">
+      <div class="block-badge" id="blockBadge"></div>
+      <div class="q-title-row">
+        <div class="q-icon" id="qIcon">❓</div>
+        <div class="q-text" id="qText"></div>
+      </div>
+      <div id="qBody"></div>
+    </div>
+  </div>
+  <div class="footer">
+    <button id="checkBtn" class="btn btn-primary" disabled>ПРОВЕРИТЬ</button>
+    <button id="nextBtn" class="btn btn-success" style="display:none;">ДАЛЕЕ ▶</button>
+  </div>
+</div>
+
+<div id="resultScreen" class="screen">
+  <div class="overlay-screen active">
+    <div class="intro-emoji" id="resultEmoji">🏆</div>
+    <div class="result-title win" id="resultTitle">ПОБЕДА!</div>
+    <div class="result-score" id="resultScore">0 очков</div>
+    <div class="result-stats" id="resultStats"></div>
+    <div class="achievements-list" id="achievementsList"></div>
+    <button id="restartBtn" class="btn btn-primary" style="margin-top:16px;">🔄 ИГРАТЬ СНОВА</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="toast-feedback" id="feedback"></div>
+
+<script>
+(function(){
+'use strict';
+
+const BLOCKS = [
+  { name:'Древность и Механика', short:'БЛОК 1 · ДРЕВНОСТЬ', emoji:'🏛️', color:'#00f5ff' },
+  { name:'Эра ЭВМ и Поколения', short:'БЛОК 2 · ЭВМ', emoji:'💡', color:'#ff00ff' },
+  { name:'Кибер-будущее и ИИ', short:'БЛОК 3 · БУДУЩЕЕ', emoji:'🤖', color:'#00ff88' }
+];
+
+const QUESTIONS = [
+  // БЛОК 1
+  { block:1, type:'choice', icon:'🧮',
+    q:'Главное вычислительное устройство древности с косточками на спицах:',
+    options:['Абак / Счёты','Паскалина','Перфокарта','Арифмометр'], correct:0 },
+  { block:1, type:'truefalse', icon:'🪢',
+    q:'Узелковое письмо «Кипу» использовалось в Древнем Египте для постройки пирамид.',
+    correct:false },
+  { block:1, type:'matching', icon:'🔗',
+    q:'Сопоставь устройство и мастера, который его создал:',
+    pairs:[
+      { left:'Паскалина', right:'Блез Паскаль' },
+      { left:'Аналитическая машина', right:'Чарльз Бэббидж' },
+      { left:'Первая программа', right:'Ада Лавлейс' },
+      { left:'Табулятор', right:'Герман Холлерит' }
+    ] },
+  { block:1, type:'choice', icon:'👩‍💻',
+    q:'Первая в мире женщина-программист, в честь которой назван язык программирования:',
+    options:['Ада Лавлейс','Софья Ковалевская','Грейс Хоппер','Мария Кюри'], correct:0 },
+  { block:1, type:'category', icon:'📦',
+    q:'Распредели устройства по этапам развития:',
+    categories:['Ручной этап','Механический этап'],
+    items:[
+      { text:'Абак', cat:0 },
+      { text:'Палочки Непера', cat:0 },
+      { text:'Счёты', cat:0 },
+      { text:'Паскалина', cat:1 },
+      { text:'Арифмометр', cat:1 },
+      { text:'Машина Бэббиджа', cat:1 }
+    ] },
+  { block:1, type:'order', icon:'⏳',
+    q:'Расставь изобретения от самого древнего к более новому:',
+    items:['Узелковое письмо Кипу','Древний Абак','Паскалина (1642 год)','Аналитическая машина Бэббиджа'] },
+  { block:1, type:'truefalse', icon:'⚙️',
+    q:'Суммирующая машина Блеза Паскаля работала на электронных батарейках.',
+    correct:false },
+  { block:1, type:'choice', icon:'📐',
+    q:'Какая машина имела все блоки современного компьютера (память, процессор), но не была достроена при жизни автора?',
+    options:['Аналитическая машина Бэббиджа','Паскалина','Арифмометр','Табулятор Холлерита'], correct:0 },
+  { block:1, type:'choice', icon:'📜',
+    q:'Перфокарта — это:',
+    options:['Картонная карточка с отверстиями для записи данных','Электронная микросхема для хранения фото','Металлическая пластина для печати книг','Стеклянная трубка с газом'], correct:0 },
+  { block:1, type:'truefalse', icon:'🕰️',
+    q:'Механический этап развития ВТ длился до появления электронных ламп в XX веке.',
+    correct:true },
+
+  // БЛОК 2
+  { block:2, type:'choice', icon:'💡',
+    q:'Главная деталь (элементная база) 1-го поколения ЭВМ:',
+    options:['Вакуумная электронная лампа 💡','Транзистор 🔌','Интегральная схема 🔲','Микропроцессор ⚡'], correct:0 },
+  { block:2, type:'choice', icon:'🔌',
+    q:'Во 2-м поколении ЭВМ громоздкие лампы заменили на:',
+    options:['Транзисторы 🔌','Микропроцессоры ⚡','Интегральные схемы 🔲','Квантовые чипы ⚛️'], correct:0 },
+  { block:2, type:'matching', icon:'🔗',
+    q:'Сопоставь поколение ЭВМ и главную деталь:',
+    pairs:[
+      { left:'1-е поколение', right:'Электронная лампа' },
+      { left:'2-е поколение', right:'Транзистор' },
+      { left:'3-е поколение', right:'Интегральная схема' },
+      { left:'4-е поколение', right:'Микропроцессор' }
+    ] },
+  { block:2, type:'truefalse', icon:'📏',
+    q:'Первые компьютеры 1-го поколения (ЭНИАК, МЭСМ) легко помещались на школьном столе.',
+    correct:false },
+  { block:2, type:'category', icon:'📦',
+    q:'Распредели свойства по поколениям ЭВМ:',
+    categories:['1-е поколение ЭВМ','4-е поколение ЭВМ'],
+    items:[
+      { text:'Огромный размер', cat:0 },
+      { text:'Часто перегорали', cat:0 },
+      { text:'Много энергии', cat:0 },
+      { text:'Микропроцессор', cat:1 },
+      { text:'Настольный ПК', cat:1 },
+      { text:'Наличие интернета', cat:1 }
+    ] },
+  { block:2, type:'order', icon:'⏳',
+    q:'Расставь деталь ЭВМ в порядке эволюции (от старой к новой):',
+    items:['Вакуумная лампа','Транзистор','Интегральная микросхема','Микропроцессор'] },
+  { block:2, type:'choice', icon:'🖥️',
+    q:'Какое изобретение позволило создать Персональный Компьютер (ПК) для каждого дома?',
+    options:['Микропроцессор','Электронная лампа','Перфокарта','Транзистор'], correct:0 },
+  { block:2, type:'truefalse', icon:'🖱️',
+    q:'В 3-ем поколении ЭВМ пользователи впервые начали использовать монитор и клавиатуру.',
+    correct:true },
+  { block:2, type:'choice', icon:'🇷🇺',
+    q:'Первая отечественная ЭВМ, созданная под руководством С. А. Лебедева:',
+    options:['МЭСМ','ЭНИАК','IBM PC','Apple I'], correct:0 },
+  { block:2, type:'truefalse', icon:'🔥',
+    q:'Транзисторы выделяли больше тепла и ломались чаще, чем электронные лампы.',
+    correct:false },
+
+  // БЛОК 3
+  { block:3, type:'choice', icon:'🤖',
+    q:'Какое поколение ЭВМ развивается сейчас и основано на Искусственном Интеллекте?',
+    options:['5-е поколение','3-е поколение','1-е поколение','2-е поколение'], correct:0 },
+  { block:3, type:'matching', icon:'🔗',
+    q:'Сопоставь технологию и её применение:',
+    pairs:[
+      { left:'Нейросети', right:'Распознавание речи и генерация картинок' },
+      { left:'Квантовые ПК', right:'Сверхбыстрые научные вычисления' },
+      { left:'Робототехника', right:'Автоматизация фабрик и дома' },
+      { left:'Биокомпьютеры', right:'Вычисления на основе ДНК/молекул' }
+    ] },
+  { block:3, type:'truefalse', icon:'⚛️',
+    q:'Квантовый компьютер использует кубиты, которые могут быть в состоянии 0 и 1 одновременно.',
+    correct:true },
+  { block:3, type:'category', icon:'📦',
+    q:'Распредели технологии по категориям:',
+    categories:['Прошлое и Настоящее','Технологии Будущего (5 поколение)'],
+    items:[
+      { text:'Перфокарты', cat:0 },
+      { text:'Транзисторы', cat:0 },
+      { text:'Обычный ПК', cat:0 },
+      { text:'Квантовые процессоры', cat:1 },
+      { text:'Голографический интерфейс', cat:1 },
+      { text:'Нейросети', cat:1 }
+    ] },
+  { block:3, type:'choice', icon:'🧠',
+    q:'Что позволяет современным компьютерам 5-го поколения обучаться на данных?',
+    options:['Искусственный интеллект и нейронные сети','Электронные лампы и перфокарты','Транзисторы и бумажные ленты','Механические шестерёнки'], correct:0 },
+  { block:3, type:'order', icon:'⏳',
+    q:'Упорядочи носители информации от исторического к современному:',
+    items:['Перфокарта','Магнитная лента','Оптический CD-диск','Облачное хранилище / SSD'] },
+  { block:3, type:'truefalse', icon:'🏠',
+    q:'Перспектива развития ВТ заключается только в увеличении размера компьютеров до размера дома.',
+    correct:false },
+  { block:3, type:'choice', icon:'💭',
+    q:'Как называется способность компьютера имитировать человеческое мышление и решать творческие задачи?',
+    options:['Искусственный интеллект','Механический калькулятор','Перфокарта','Электронная лампа'], correct:0 },
+  { block:3, type:'matching', icon:'🔗',
+    q:'Сопоставь этап развития и его главный символ:',
+    pairs:[
+      { left:'Древность', right:'Счёты (Абак)' },
+      { left:'XIX век', right:'Зубчатое колесо' },
+      { left:'XX век (середина)', right:'Электронная лампа' },
+      { left:'XXI век', right:'ИИ и Квантовый чип' }
+    ] },
+  { block:3, type:'choice', icon:'🚀',
+    q:'Главная цель развития вычислительной техники будущего:',
+    options:['Увеличение скорости, умная автономия и помощь человеку','Увеличение размера до размера города','Отказ от использования электричества','Замена всех людей роботами'], correct:0 }
+];
+
+const ACHIEVEMENTS = {
+  ancient: { emoji:'🏆', name:'Хранитель Древности', desc:'Пройден Блок 1' },
+  micro:   { emoji:'⚡', name:'Мастер Микросхем',   desc:'Пройден Блок 2' },
+  future:  { emoji:'🤖', name:'Архитектор Будущего', desc:'Пройдена вся игра' },
+  speed:   { emoji:'🔥', name:'Молниеносный',       desc:'Комбо-серия из 5' }
+};
+
+const state = {
+  qIndex:0, lives:7, score:0, streak:0, maxStreak:0,
+  timeLeft:1500, timerId:null, qStartTime:0,
+  checked:false, gameEnded:false,
+  selection:null,
+  matchAns:{}, matchSelected:null, matchRightOrder:[],
+  catAns:{}, catSelected:null,
+  orderArr:[],
+  currentChoice:null
+};
+
+const $ = (s) => document.querySelector(s);
+
+function shuffle(arr){
+  for (let i = arr.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    const t = arr[i]; arr[i] = arr[j]; arr[j] = t;
+  }
+  return arr;
+}
+
+/* ============ AUDIO ============ */
+let audioCtx = null;
+function getAudio(){
+  if (!audioCtx){
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){}
+  }
+  if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+function playTone(freq, start, dur, type, gainValue){
+  const ctx = getAudio();
+  if (!ctx) return;
+  const osc = ctx.createOscillator();
+  const g = ctx.createGain();
+  osc.type = type || 'sine';
+  osc.frequency.value = freq;
+  const t0 = ctx.currentTime + start;
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(gainValue || 0.15, t0 + 0.02);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+  osc.connect(g); g.connect(ctx.destination);
+  osc.start(t0); osc.stop(t0 + dur + 0.05);
+}
+function sfxClick(){ playTone(600, 0, 0.07, 'sine', 0.09); }
+function sfxCorrect(){
+  playTone(523.25, 0, 0.12, 'sine', 0.18);
+  playTone(659.25, 0.08, 0.12, 'sine', 0.18);
+  playTone(783.99, 0.16, 0.22, 'sine', 0.2);
+}
+function sfxWrong(){
+  playTone(200, 0, 0.15, 'square', 0.14);
+  playTone(150, 0.14, 0.3, 'square', 0.14);
+}
+function sfxVictory(){
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((n, i) => {
+    playTone(n, i * 0.15, 0.35, 'sine', 0.2);
+    playTone(n * 2, i * 0.15, 0.35, 'triangle', 0.07);
+  });
+  playTone(1567.98, 0.85, 0.9, 'sine', 0.24);
+}
+function sfxGameOver(){
+  playTone(440, 0, 0.3, 'sawtooth', 0.14);
+  playTone(349.23, 0.3, 0.3, 'sawtooth', 0.14);
+  playTone(261.63, 0.6, 0.6, 'sawtooth', 0.14);
+  playTone(196, 1.0, 1.0, 'sawtooth', 0.11);
+}
+function sfxAchievement(){
+  playTone(880, 0, 0.1, 'sine', 0.14);
+  playTone(1174.66, 0.1, 0.1, 'sine', 0.14);
+  playTone(1396.91, 0.2, 0.32, 'sine', 0.17);
+}
+
+/* ============ ACHIEVEMENTS ============ */
+function getAchievements(){
+  try { return JSON.parse(localStorage.getItem('vt_achievements') || '{}'); }
+  catch(e){ return {}; }
+}
+function unlockAchievement(id){
+  const a = getAchievements();
+  if (!a[id]){
+    a[id] = true;
+    try { localStorage.setItem('vt_achievements', JSON.stringify(a)); } catch(e){}
+    showToast(ACHIEVEMENTS[id].emoji + ' Достижение: ' + ACHIEVEMENTS[id].name);
+    sfxAchievement();
+  }
+}
+
+/* ============ UI HELPERS ============ */
+let toastTimer = null;
+function showToast(text){
+  const t = $('#toast');
+  t.textContent = text;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
+}
+let feedbackTimer = null;
+function showFeedback(text, good){
+  const f = $('#feedback');
+  f.textContent = text;
+  f.className = 'toast-feedback show ' + (good ? 'good' : 'bad');
+  clearTimeout(feedbackTimer);
+  feedbackTimer = setTimeout(() => f.classList.remove('show'), 1300);
+}
+
+/* ============ HUD ============ */
+function renderHearts(){
+  let s = '';
+  for (let i = 0; i < 7; i++){
+    s += (i < state.lives) ? '❤️' : '<span class="lost">🤍</span>';
+  }
+  $('#hearts').innerHTML = s;
+}
+function getComboMultiplier(){
+  if (state.streak >= 9) return 5;
+  if (state.streak >= 6) return 3;
+  if (state.streak >= 3) return 2;
+  return 1;
+}
+function updateHUD(){
+  $('#scoreVal').textContent = state.score;
+  const mult = getComboMultiplier();
+  $('#comboVal').textContent = 'x' + mult;
+  if (mult > 1) $('#comboBox').classList.add('active');
+  else $('#comboBox').classList.remove('active');
+  renderHearts();
+  const total = QUESTIONS.length;
+  $('#qLabel').textContent = Math.min(state.qIndex + 1, total) + '/' + total;
+  const blockNum = Math.min(3, Math.floor(state.qIndex / 10) + 1);
+  $('#blockLabel').textContent = 'Блок ' + blockNum + '/3';
+  $('#progressFill').style.width = (state.qIndex / total * 100) + '%';
+  const m = Math.floor(state.timeLeft / 60);
+  const s = state.timeLeft % 60;
+  $('#timerVal').textContent = String(m).padStart(2,'0') + ':' + String(s).padStart(2,'0');
+  if (state.timeLeft <= 60) $('#timerBox').classList.add('warning');
+  else $('#timerBox').classList.remove('warning');
+}
+function startTimer(){
+  state.timerId = setInterval(() => {
+    state.timeLeft--;
+    if (state.timeLeft <= 0){
+      state.timeLeft = 0;
+      updateHUD();
+      clearInterval(state.timerId);
+      state.timerId = null;
+      state.gameEnded = true;
+      gameOver();
+      return;
+    }
+    updateHUD();
+  }, 1000);
+}
+function stopTimer(){
+  if (state.timerId){ clearInterval(state.timerId); state.timerId = null; }
+}
+
+/* ============ RENDER QUESTION ============ */
+function renderQuestion(){
+  const q = QUESTIONS[state.qIndex];
+  state.checked = false;
+  state.selection = null;
+  state.matchAns = {};
+  state.matchSelected = null;
+  state.catAns = {};
+  state.catSelected = null;
+  state.orderArr = [];
+  state.qStartTime = performance.now();
+
+  const bi = BLOCKS[q.block - 1];
+  const badge = $('#blockBadge');
+  badge.textContent = bi.emoji + ' ' + bi.short;
+  badge.style.color = bi.color;
+  badge.style.background = 'rgba(255,255,255,0.05)';
+  badge.style.border = '1px solid ' + bi.color + '66';
+  badge.style.boxShadow = '0 0 14px ' + bi.color + '40';
+
+  $('#qIcon').textContent = q.icon || '❓';
+  $('#qIcon').style.borderColor = bi.color + '66';
+  $('#qText').textContent = q.q;
+
+  // Prepare order arr
+  if (q.type === 'order'){
+    state.orderArr = shuffle(q.items.map((_, i) => i));
+    let guard = 0;
+    while (state.orderArr.every((v, i) => v === i) && guard < 20){
+      state.orderArr = shuffle(state.orderArr.slice());
+      guard++;
+    }
+  }
+
+  const body = $('#qBody');
+  body.innerHTML = '';
+
+  if (q.type === 'choice') renderChoice(q, body);
+  else if (q.type === 'truefalse') renderTrueFalse(q, body);
+  else if (q.type === 'matching') renderMatching(q, body);
+  else if (q.type === 'category') renderCategory(q, body);
+  else if (q.type === 'order') renderOrder(q, body);
+
+  updateHUD();
+  updateButtons();
+}
+
+function renderChoice(q, body){
+  const idxs = q.options.map((_, i) => i);
+  shuffle(idxs);
+  const newOptions = idxs.map(i => q.options[i]);
+  const newCorrect = idxs.indexOf(q.correct);
+  state.currentChoice = { options: newOptions, correct: newCorrect };
+
+  const wrap = document.createElement('div');
+  wrap.className = 'options';
+  newOptions.forEach((opt, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'opt';
+    btn.type = 'button';
+    btn.dataset.idx = i;
+    const bullet = document.createElement('span');
+    bullet.className = 'opt-bullet';
+    bullet.textContent = String.fromCharCode(65 + i);
+    btn.appendChild(bullet);
+    const txt = document.createElement('span');
+    txt.textContent = opt;
+    btn.appendChild(txt);
+    btn.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      state.selection = i;
+      body.querySelectorAll('.opt').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      updateButtons();
+    };
+    wrap.appendChild(btn);
+  });
+  body.appendChild(wrap);
+}
+
+function renderTrueFalse(q, body){
+  const wrap = document.createElement('div');
+  wrap.className = 'tf-buttons';
+  const items = [
+    { label:'ВЕРНО', val:true, icon:'✅' },
+    { label:'НЕВЕРНО', val:false, icon:'❌' }
+  ];
+  items.forEach(it => {
+    const btn = document.createElement('button');
+    btn.className = 'tf-btn';
+    btn.type = 'button';
+    btn.dataset.val = it.val ? '1' : '0';
+    const ic = document.createElement('span');
+    ic.className = 'tf-icon';
+    ic.textContent = it.icon;
+    btn.appendChild(ic);
+    const lb = document.createElement('span');
+    lb.textContent = it.label;
+    btn.appendChild(lb);
+    btn.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      state.selection = it.val;
+      body.querySelectorAll('.tf-btn').forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+      updateButtons();
+    };
+    wrap.appendChild(btn);
+  });
+  body.appendChild(wrap);
+}
+
+function renderMatching(q, body){
+  state.matchRightOrder = shuffle(q.pairs.map((_, i) => i));
+
+  const grid = document.createElement('div');
+  grid.className = 'match-grid';
+  const leftCol = document.createElement('div');
+  leftCol.className = 'match-col';
+  const rightCol = document.createElement('div');
+  rightCol.className = 'match-col';
+
+  q.pairs.forEach((pair, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'match-item';
+    btn.type = 'button';
+    btn.dataset.left = i;
+    btn.textContent = pair.left;
+    btn.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      if (state.matchAns[i] !== undefined){
+        delete state.matchAns[i];
+        state.matchSelected = null;
+        refreshMatchUI(q);
+        return;
+      }
+      state.matchSelected = i;
+      refreshMatchUI(q);
+      updateButtons();
+    };
+    leftCol.appendChild(btn);
+  });
+
+  state.matchRightOrder.forEach((origIdx, dispIdx) => {
+    const btn = document.createElement('button');
+    btn.className = 'match-item';
+    btn.type = 'button';
+    btn.dataset.right = dispIdx;
+    btn.textContent = q.pairs[origIdx].right;
+    btn.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      let existingLeft = -1;
+      for (const k in state.matchAns){
+        if (state.matchAns[k] === dispIdx){ existingLeft = parseInt(k, 10); break; }
+      }
+      if (existingLeft >= 0){
+        delete state.matchAns[existingLeft];
+        refreshMatchUI(q);
+        return;
+      }
+      if (state.matchSelected !== null){
+        state.matchAns[state.matchSelected] = dispIdx;
+        state.matchSelected = null;
+        refreshMatchUI(q);
+        updateButtons();
+      }
+    };
+    rightCol.appendChild(btn);
+  });
+
+  grid.appendChild(leftCol);
+  grid.appendChild(rightCol);
+  body.appendChild(grid);
+  refreshMatchUI(q);
+}
+
+function refreshMatchUI(q){
+  const body = $('#qBody');
+  const palette = ['#00f5ff','#ff00ff','#00ff88','#ffe600'];
+  const colorMap = {};
+  let ci = 0;
+  for (const l in state.matchAns){
+    colorMap[l] = palette[ci % palette.length];
+    ci++;
+  }
+
+  body.querySelectorAll('.match-item[data-left]').forEach(btn => {
+    const l = parseInt(btn.dataset.left, 10);
+    btn.className = 'match-item';
+    if (state.matchSelected === l) btn.classList.add('selected');
+    if (state.matchAns[l] !== undefined){
+      btn.classList.add('matched');
+      btn.style.borderColor = colorMap[l];
+      btn.style.boxShadow = '0 0 16px ' + colorMap[l] + '66';
+    } else {
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+    }
+  });
+
+  body.querySelectorAll('.match-item[data-right]').forEach(btn => {
+    const d = parseInt(btn.dataset.right, 10);
+    btn.className = 'match-item';
+    let matchedBy = -1;
+    for (const k in state.matchAns){
+      if (state.matchAns[k] === d){ matchedBy = parseInt(k, 10); break; }
+    }
+    if (matchedBy >= 0){
+      btn.classList.add('matched');
+      btn.style.borderColor = colorMap[matchedBy];
+      btn.style.boxShadow = '0 0 16px ' + colorMap[matchedBy] + '66';
+    } else {
+      btn.style.borderColor = '';
+      btn.style.boxShadow = '';
+    }
+  });
+}
+
+function renderCategory(q, body){
+  const pool = document.createElement('div');
+  pool.className = 'cat-pool';
+  pool.id = 'catPool';
+
+  const zones = document.createElement('div');
+  zones.className = 'cat-zones';
+
+  q.categories.forEach((catName, catIdx) => {
+    const zone = document.createElement('div');
+    zone.className = 'cat-zone';
+    zone.dataset.cat = catIdx;
+    const title = document.createElement('div');
+    title.className = 'cat-zone-title';
+    title.textContent = catName;
+    zone.appendChild(title);
+    const items = document.createElement('div');
+    items.className = 'cat-zone-items';
+    zone.appendChild(items);
+    zone.onclick = (e) => {
+      if (state.checked) return;
+      if (e.target.closest('.chip')) return;
+      if (state.catSelected !== null){
+        state.catAns[state.catSelected] = catIdx;
+        state.catSelected = null;
+        sfxClick();
+        refreshCategoryUI(q);
+        updateButtons();
+      }
+    };
+    zones.appendChild(zone);
+  });
+
+  body.appendChild(pool);
+  body.appendChild(zones);
+  refreshCategoryUI(q);
+}
+
+function refreshCategoryUI(q){
+  const pool = $('#catPool');
+  if (!pool) return;
+  pool.innerHTML = '';
+  q.items.forEach((item, i) => {
+    if (state.catAns[i] === undefined){
+      const chip = document.createElement('button');
+      chip.className = 'chip';
+      chip.type = 'button';
+      chip.dataset.idx = i;
+      chip.textContent = item.text;
+      if (state.catSelected === i) chip.classList.add('selected');
+      chip.onclick = (e) => {
+        e.stopPropagation();
+        if (state.checked) return;
+        sfxClick();
+        state.catSelected = (state.catSelected === i) ? null : i;
+        refreshCategoryUI(q);
+        updateButtons();
+      };
+      pool.appendChild(chip);
+    }
+  });
+  if (pool.children.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'cat-pool-empty';
+    empty.textContent = '✅ Все элементы распределены';
+    pool.appendChild(empty);
+  }
+
+  q.categories.forEach((_, catIdx) => {
+    const zone = document.querySelector('.cat-zone[data-cat="' + catIdx + '"] .cat-zone-items');
+    if (!zone) return;
+    zone.innerHTML = '';
+    q.items.forEach((item, i) => {
+      if (state.catAns[i] === catIdx){
+        const chip = document.createElement('button');
+        chip.className = 'chip';
+        chip.type = 'button';
+        chip.dataset.idx = i;
+        chip.textContent = item.text;
+        if (state.catSelected === i) chip.classList.add('selected');
+        chip.onclick = (e) => {
+          e.stopPropagation();
+          if (state.checked) return;
+          sfxClick();
+          if (state.catSelected === i){
+            delete state.catAns[i];
+            state.catSelected = null;
+          } else {
+            state.catSelected = i;
+          }
+          refreshCategoryUI(q);
+          updateButtons();
+        };
+        zone.appendChild(chip);
+      }
+    });
+  });
+}
+
+function renderOrder(q, body){
+  renderOrderList(q, body);
+}
+
+function renderOrderList(q, body){
+  body.innerHTML = '';
+  const list = document.createElement('div');
+  list.className = 'order-list';
+  state.orderArr.forEach((origIdx, dispIdx) => {
+    const item = document.createElement('div');
+    item.className = 'order-item';
+    const num = document.createElement('div');
+    num.className = 'order-num';
+    num.textContent = String(dispIdx + 1);
+    item.appendChild(num);
+    const txt = document.createElement('div');
+    txt.className = 'order-text';
+    txt.textContent = q.items[origIdx];
+    item.appendChild(txt);
+    const btns = document.createElement('div');
+    btns.className = 'order-btns';
+
+    const up = document.createElement('button');
+    up.className = 'order-btn';
+    up.type = 'button';
+    up.textContent = '▲';
+    up.disabled = (dispIdx === 0) || state.checked;
+    up.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      const t = state.orderArr[dispIdx - 1];
+      state.orderArr[dispIdx - 1] = state.orderArr[dispIdx];
+      state.orderArr[dispIdx] = t;
+      renderOrderList(q, body);
+      updateButtons();
+    };
+    btns.appendChild(up);
+
+    const down = document.createElement('button');
+    down.className = 'order-btn';
+    down.type = 'button';
+    down.textContent = '▼';
+    down.disabled = (dispIdx === state.orderArr.length - 1) || state.checked;
+    down.onclick = () => {
+      if (state.checked) return;
+      sfxClick();
+      const t = state.orderArr[dispIdx + 1];
+      state.orderArr[dispIdx + 1] = state.orderArr[dispIdx];
+      state.orderArr[dispIdx] = t;
+      renderOrderList(q, body);
+      updateButtons();
+    };
+    btns.appendChild(down);
+
+    item.appendChild(btns);
+    list.appendChild(item);
+  });
+  body.appendChild(list);
+
+  if (state.checked){
+    const items = list.querySelectorAll('.order-item');
+    items.forEach((it, i) => {
+      it.classList.add(state.orderArr[i] === i ? 'correct' : 'wrong');
+    });
+  }
+}
+
+function isAnswerComplete(){
+  const q = QUESTIONS[state.qIndex];
+  if (q.type === 'choice' || q.type === 'truefalse'){
+    return state.selection !== null && state.selection !== undefined;
+  }
+  if (q.type === 'matching') return Object.keys(state.matchAns).length === q.pairs.length;
+  if (q.type === 'category') return Object.keys(state.catAns).length === q.items.length;
+  if (q.type === 'order') return true;
+  return false;
+}
+function updateButtons(){
+  $('#checkBtn').disabled = !isAnswerComplete() || state.checked;
+}
+
+/* ============ CHECK ============ */
+function checkAnswer(){
+  const q = QUESTIONS[state.qIndex];
+  state.checked = true;
+  let correct = false;
+  const body = $('#qBody');
+
+  if (q.type === 'choice'){
+    correct = state.selection === state.currentChoice.correct;
+    body.querySelectorAll('.opt').forEach(btn => {
+      const i = parseInt(btn.dataset.idx, 10);
+      btn.disabled = true;
+      if (i === state.currentChoice.correct){
+        btn.classList.remove('selected');
+        btn.classList.add('correct');
+        const m = document.createElement('span');
+        m.className = 'opt-mark ok';
+        m.textContent = '✓';
+        btn.appendChild(m);
+      } else if (i === state.selection){
+        btn.classList.remove('selected');
+        btn.classList.add('wrong');
+        const m = document.createElement('span');
+        m.className = 'opt-mark bad';
+        m.textContent = '✗';
+        btn.appendChild(m);
+      }
+    });
+  }
+  else if (q.type === 'truefalse'){
+    correct = state.selection === q.correct;
+    body.querySelectorAll('.tf-btn').forEach(btn => {
+      const v = btn.dataset.val === '1';
+      btn.disabled = true;
+      if (v === q.correct){
+        btn.classList.remove('selected');
+        btn.classList.add('correct');
+      } else if (v === state.selection){
+        btn.classList.remove('selected');
+        btn.classList.add('wrong');
+      }
+    });
+  }
+  else if (q.type === 'matching'){
+    let ok = 0;
+    body.querySelectorAll('.match-item[data-left]').forEach(btn => {
+      btn.disabled = true;
+      const l = parseInt(btn.dataset.left, 10);
+      const dispR = state.matchAns[l];
+      const origR = dispR !== undefined ? state.matchRightOrder[dispR] : -1;
+      if (origR === l){
+        ok++;
+        btn.classList.add('correct');
+        const m = document.createElement('span');
+        m.className = 'mark ok';
+        m.textContent = '✓';
+        btn.appendChild(m);
+      } else if (dispR !== undefined){
+        btn.classList.add('wrong');
+        const m = document.createElement('span');
+        m.className = 'mark bad';
+        m.textContent = '✗';
+        btn.appendChild(m);
+      }
+    });
+    body.querySelectorAll('.match-item[data-right]').forEach(b => b.disabled = true);
+    correct = ok === q.pairs.length;
+  }
+  else if (q.type === 'category'){
+    let ok = 0;
+    body.querySelectorAll('.chip').forEach(chip => {
+      const i = parseInt(chip.dataset.idx, 10);
+      const correctCat = q.items[i].cat;
+      const assigned = state.catAns[i];
+      if (assigned === correctCat){
+        chip.classList.add('correct');
+        ok++;
+      } else if (assigned !== undefined){
+        chip.classList.add('wrong');
+      }
+    });
+    correct = ok === q.items.length;
+  }
+  else if (q.type === 'order'){
+    let ok = 0;
+    state.orderArr.forEach((origIdx, dispIdx) => {
+      if (origIdx === dispIdx) ok++;
+    });
+    const list = body.querySelectorAll('.order-item');
+    list.forEach((it, i) => {
+      it.classList.add(state.orderArr[i] === i ? 'correct' : 'wrong');
+    });
+    body.querySelectorAll('.order-btn').forEach(b => b.disabled = true);
+    correct = ok === q.items.length;
+  }
+
+  if (correct){
+    state.streak++;
+    if (state.streak > state.maxStreak) state.maxStreak = state.streak;
+    const mult = getComboMultiplier();
+    const elapsed = (performance.now() - state.qStartTime) / 1000;
+    const speedBonus = Math.max(1, Math.round(50 * (1 - Math.min(elapsed, 30) / 30)));
+    const gained = (100 + speedBonus) * mult;
+    state.score += gained;
+    sfxCorrect();
+    showFeedback('✓ +' + gained + (mult > 1 ? '  x' + mult : ''), true);
+    if (state.maxStreak >= 5) unlockAchievement('speed');
+  } else {
+    state.streak = 0;
+    state.lives--;
+    sfxWrong();
+    showFeedback('✗  −1 ❤️', false);
+    if (state.lives <= 0){
+      state.gameEnded = true;
+      setTimeout(() => gameOver(), 800);
+    }
+  }
+
+  updateHUD();
+  $('#checkBtn').style.display = 'none';
+  $('#nextBtn').style.display = 'inline-block';
+  $('#nextBtn').textContent = (state.qIndex === QUESTIONS.length - 1) ? '🏁 ФИНИШ' : 'ДАЛЕЕ ▶';
+}
+
+/* ============ NEXT ============ */
+function nextQuestion(){
+  if (state.gameEnded) return;
+  const q = QUESTIONS[state.qIndex];
+  if (q.block === 1 && state.qIndex === 9) unlockAchievement('ancient');
+  if (q.block === 2 && state.qIndex === 19) unlockAchievement('micro');
+
+  if (state.qIndex >= QUESTIONS.length - 1){
+    victory();
+    return;
+  }
+  state.qIndex++;
+  $('#checkBtn').style.display = 'inline-block';
+  $('#nextBtn').style.display = 'none';
+  $('#checkBtn').disabled = true;
+  renderQuestion();
+}
+
+/* ============ END SCREENS ============ */
+function victory(){
+  stopTimer();
+  unlockAchievement('future');
+  sfxVictory();
+  $('#gameScreen').classList.remove('active');
+  $('#resultScreen').classList.add('active');
+  $('#resultEmoji').textContent = '🏆';
+  $('#resultTitle').textContent = 'ПОБЕДА!';
+  $('#resultTitle').className = 'result-title win';
+  $('#resultScore').textContent = state.score + ' очков';
+  const elapsed = 1500 - state.timeLeft;
+  $('#resultStats').innerHTML =
+    '<div class="intro-stat"><span class="big">' + state.lives + '/7</span>жизней осталось</div>' +
+    '<div class="intro-stat"><span class="big">' + state.maxStreak + '</span>макс. серия</div>' +
+    '<div class="intro-stat"><span class="big">' + Math.floor(elapsed/60) + ':' + String(elapsed%60).padStart(2,'0') + '</span>время</div>';
+  renderAchievements();
+}
+function gameOver(){
+  stopTimer();
+  sfxGameOver();
+  $('#gameScreen').classList.remove('active');
+  $('#resultScreen').classList.add('active');
+  $('#resultEmoji').textContent = '💀';
+  $('#resultTitle').textContent = 'ИГРА ОКОНЧЕНА';
+  $('#resultTitle').className = 'result-title lose';
+  $('#resultScore').textContent = state.score + ' очков';
+  $('#resultStats').innerHTML =
+    '<div class="intro-stat"><span class="big">0/7</span>жизней</div>' +
+    '<div class="intro-stat"><span class="big">' + (state.qIndex + 1) + '/30</span>пройдено</div>' +
+    '<div class="intro-stat"><span class="big">' + state.maxStreak + '</span>макс. серия</div>';
+  renderAchievements();
+}
+function renderAchievements(){
+  const a = getAchievements();
+  const el = $('#achievementsList');
+  el.innerHTML = '';
+  Object.keys(ACHIEVEMENTS).forEach(id => {
+    const info = ACHIEVEMENTS[id];
+    const card = document.createElement('div');
+    card.className = 'ach-card' + (a[id] ? ' unlocked' : '');
+    card.innerHTML = '<span style="font-size:19px">' + info.emoji + '</span><span>' + info.name + '</span>';
+    el.appendChild(card);
+  });
+}
+
+/* ============ START / RESET ============ */
+function resetState(){
+  stopTimer();
+  state.qIndex = 0;
+  state.lives = 7;
+  state.score = 0;
+  state.streak = 0;
+  state.maxStreak = 0;
+  state.timeLeft = 1500;
+  state.checked = false;
+  state.gameEnded = false;
+  state.selection = null;
+  state.matchAns = {};
+  state.matchSelected = null;
+  state.catAns = {};
+  state.catSelected = null;
+  state.orderArr = [];
+}
+function startGame(){
+  resetState();
+  $('#introScreen').classList.remove('active');
+  $('#resultScreen').classList.remove('active');
+  $('#gameScreen').classList.add('active');
+  $('#checkBtn').style.display = 'inline-block';
+  $('#nextBtn').style.display = 'none';
+  $('#checkBtn').disabled = true;
+  renderQuestion();
+  startTimer();
+}
+
+/* ============ EVENTS ============ */
+$('#startBtn').onclick = () => { getAudio(); sfxClick(); startGame(); };
+$('#restartBtn').onclick = () => { sfxClick(); startGame(); };
+$('#checkBtn').onclick = checkAnswer;
+$('#nextBtn').onclick = nextQuestion;
+document.addEventListener('click', () => { getAudio(); }, { once: true });
+
+})();
+</script>
+</body>
+</html>
